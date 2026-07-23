@@ -53,8 +53,32 @@ def run_contradiction_finder(topic: str) -> str:
             all_contradictions.extend(contradictions)
             console.print(f"   [green]Found {len(contradictions)} contradiction(s)[/green]")
 
+    # De-duplicate: the same pair of claims can surface more than once if
+    # sub-questions overlap and pull in the same sources. We key on the
+    # actual claim text (not just source names), normalized, so near-identical
+    # findings collapse into one.
+    seen_keys = set()
+    deduped_contradictions = []
+    for c in all_contradictions:
+        key = (
+            " ".join(c.get("claim_a", "").lower().split()),
+            " ".join(c.get("claim_b", "").lower().split()),
+        )
+        # a pair is a duplicate of its reverse too (A vs B == B vs A)
+        reverse_key = (key[1], key[0])
+        if key in seen_keys or reverse_key in seen_keys:
+            continue
+        seen_keys.add(key)
+        deduped_contradictions.append(c)
+
+    if len(all_contradictions) != len(deduped_contradictions):
+        console.print(
+            f"[dim]Removed {len(all_contradictions) - len(deduped_contradictions)} "
+            f"duplicate contradiction(s) found across overlapping sub-questions.[/dim]"
+        )
+
     # 5. REPORT — turn findings into a readable output
-    report = generate_report(topic, all_contradictions, all_sources_seen)
+    report = generate_report(topic, deduped_contradictions, all_sources_seen)
     return report
 
 

@@ -9,14 +9,17 @@ from config import GROQ_API_KEY, LLM_MODEL
 client = Groq(api_key=GROQ_API_KEY)
 
 
-def ask_llm_json(system_prompt: str, user_prompt: str) -> dict | list:
+def ask_llm_json(system_prompt: str, user_prompt: str, model: str = None) -> dict | list:
     """
     Calls the LLM and forces it to return valid JSON.
     Raises a clear error if the model returns something unparseable,
     instead of silently failing later.
+
+    Pass `model` to override the default for steps (like contradiction detection)
+    that need stronger reasoning than the fast default model provides.
     """
     response = client.chat.completions.create(
-        model=LLM_MODEL,
+        model=model or LLM_MODEL,
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},

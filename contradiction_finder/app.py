@@ -87,9 +87,30 @@ if run and topic.strip():
                 all_contradictions.extend(contradictions)
                 status_box.write(f"Found **{len(contradictions)}** contradiction(s) for: *{question}*")
 
+        # De-duplicate contradictions that surface more than once across
+        # overlapping sub-questions (keyed on normalized claim text, either order).
+        seen_keys = set()
+        deduped_contradictions = []
+        for c in all_contradictions:
+            key = (
+                " ".join(c.get("claim_a", "").lower().split()),
+                " ".join(c.get("claim_b", "").lower().split()),
+            )
+            reverse_key = (key[1], key[0])
+            if key in seen_keys or reverse_key in seen_keys:
+                continue
+            seen_keys.add(key)
+            deduped_contradictions.append(c)
+
+        if len(all_contradictions) != len(deduped_contradictions):
+            status_box.write(
+                f"Removed {len(all_contradictions) - len(deduped_contradictions)} "
+                f"duplicate contradiction(s) found across overlapping sub-questions."
+            )
+
         # 5. REPORT
         status_box.update(label="Generating final report...")
-        report = generate_report(topic, all_contradictions, all_sources_seen)
+        report = generate_report(topic, deduped_contradictions, all_sources_seen)
         status_box.update(label="Done", state="complete")
 
         st.markdown("### Final Report")
