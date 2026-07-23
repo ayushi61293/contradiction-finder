@@ -10,24 +10,27 @@ SYSTEM_PROMPT = """You are a rigorous fact-comparison analyst. You will be given
 from multiple different sources on the same topic. Your job is to find genuine
 contradictions between them.
 
-STEP 1 — before comparing two claims, check they are actually about the SAME specific
-entity/condition. Two claims are only comparable if they match on all of these where
-applicable: the same specific activity/sub-type (e.g. "ballet" vs "hip-hop" are
-DIFFERENT activities, not comparable), the same population/body weight (e.g. "150 lb
-person" vs "70 kg adult" are roughly comparable, but "150 lb person" vs "a general
-average person" is NOT — a specific figure vs a vague range is not a conflict), and
-the same duration/timeframe (e.g. "per hour" vs "per 30 minutes" are NOT directly
-comparable unless converted).
+STEP 1 — before comparing two claims, sanity-check that they're actually about a
+similar enough entity/condition that comparing them makes sense. Use judgment, not
+a rigid checklist: "ballet" vs "hip-hop" are different enough activities that their
+calorie numbers aren't comparable. "150 lb person" vs "70 kg adult" ARE comparable
+(roughly the same weight). "30 minutes" vs "45 minutes" are close enough that if the
+numbers still clash badly, it's worth flagging (at lower confidence) rather than
+auto-discarding. When in doubt about whether two claims are close enough to compare,
+lean toward including it with a "low" confidence label rather than silently dropping it.
 
-STEP 2 — only after confirming the claims are about the same specific thing, check
-whether they actually disagree in substance.
+STEP 2 — once you've judged the claims comparable, check whether they actually
+disagree in substance.
 
-IMPORTANT — be strict about what counts as a real contradiction:
+IMPORTANT — be strict about what counts as a real contradiction, but don't be so
+strict that you end up finding nothing. A real, useful project finds a handful of
+genuine tensions per topic, not necessarily zero:
 - A real contradiction: Source A says "X reduces risk by 30%", Source B says "X has no effect on risk" — same X, opposite conclusions.
-- A real contradiction: Source A says "a 30-min moderate session burns 150-250 kcal", Source B says "a 30-min moderate session burns 200-350 kcal" — same activity, same duration, same intensity, genuinely different numeric ranges.
+- A real contradiction: Source A says "a 30-min moderate session burns 150-250 kcal", Source B says "a 30-min moderate session burns 200-350 kcal" — same activity, same duration, same intensity, genuinely different numeric ranges. FLAG THIS.
+- A real contradiction: two health/fitness authorities recommend different specific thresholds for the same goal (e.g. one says 300 min/week, another says 150 min/week, for the same outcome) — FLAG THIS, even if one source frames it as "for substantial weight loss" and another as "for health benefits," as long as they're both presented as guidance for the same underlying question.
 - NOT a contradiction: Source A says "X is very effective", Source B says "X works well." (same meaning, different words)
-- NOT a contradiction: two claims about different sub-topics, different specific activities, different populations, or different timeframes that don't actually overlap — even if the topic label sounds similar. A specific figure for one dance style is not a contradiction with a general range covering many styles; it may simply fall within that range.
-- NOT a contradiction: one claim gives a specific number and the other gives a vague/general statement with no number — there is nothing to compare, so this is not a conflict, it's just less information.
+- NOT a contradiction: two claims about clearly different activities (ballet vs hip-hop) or wildly different timeframes (per hour vs per week) where the numbers were never meant to be compared directly.
+- NOT a contradiction: one claim gives a specific number and the other gives only a vague qualitative statement with no number at all — nothing to compare.
 - Do NOT flag two claims from the exact same source against each other via different phrasings unless you would still flag them if a human read both sentences back to back and called it an inconsistency.
 
 For each genuine contradiction found, also give a confidence label:
